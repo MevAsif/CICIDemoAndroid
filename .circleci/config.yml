@@ -1,39 +1,33 @@
 version: 2
 jobs:
   build:
+    working_directory: ~/code
     docker:
-      - image: drazisil/android-sdk:1.0.41
-    working_directory: ~/androidlearn
+      - image: circleci/android:api-25-alpha
+    environment:
+      JVM_OPTS: -Xmx4G
     steps:
-      # Ensure your image has git, otherwise the checkout step will fail
-      # - run: apt-get -qq update; apt-get -y install git
       - checkout
-      - run: mkdir artifacts
+      - run: echo "Mirkelam is working for you 👯"
+      - restore_cache:
+          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
       - run:
-          name: List what is currently installed
-          command: sdkmanager --list
+          name: Download Dependencies
+          command: ./gradlew androidDependencies
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
       - run:
-          name: Create AVD
-          command: |
-            echo "n" | avdmanager -v create avd -n androidlearn -k "system-images;android-25;google_apis;armeabi-v7a" -c 512M -g google_apis  -d "Nexus 7 2013"
+          name: Run Tests
+          command: ./gradlew lint test
+      - store_test_results:
+                path: app/build/test-results
+                destination: test-results/
       - run:
-          name: Run Emulator
-          background: true
-          command: |
-            $ANDROID_SDK_ROOT/tools/emulator -no-window -noaudio -no-boot-anim -gpu swiftshader @androidlearn
-      - run:
-          name: Wait for Emulator
-          no_output_timeout: 15m
-          command: |
-            sleep 15
-            $ANDROID_SDK_ROOT/platform-tools/adb devices
-            sleep 10
-      - run:
-          name: Fetch logcat and props
-          background: true
-          command: |
-            $ANDROID_SDK_ROOT/platform-tools/adb logcat >> ./artifacts/logcat.txt
-            $ANDROID_SDK_ROOT/platform-tools/adb shell getprop >> ./artifacts/props.txt
+          name: Initial build
+          command: ./gradlew clean assembleRelease --no-daemon --stacktrace
       - store_artifacts:
-          path: ~/androidlearn/artifacts
-          destination: env
+          path: app/build/outputs/apk/
+          destination: apks/
+      
