@@ -50,6 +50,7 @@ jobs:
             adb shell pm list packages
             # Install package
             $ANDROID_SDK_ROOT/platform-tools/adb install /home/android/androidlearn/app/build/outputs/apk/app-debug.apk
+            ./gradlew connectedAndroidTest
       - store_artifacts:
           path: ~/androidlearn/artifacts
           destination: env
